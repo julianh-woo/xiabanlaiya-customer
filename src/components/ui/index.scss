@@ -1,0 +1,402 @@
+/* UI 组件库样式 */
+
+/* ==================== Button ==================== */
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 32rpx;
+  font-size: 28rpx;
+  line-height: 1;
+  border: none;
+  border-radius: var(--radius-small);
+  background-color: var(--bg-disabled);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.ui-button--primary {
+  background-color: var(--primary-color);
+  color: #ffffff;
+}
+
+.ui-button--success {
+  background-color: var(--success-color);
+  color: #ffffff;
+}
+
+.ui-button--warning {
+  background-color: var(--warning-color);
+  color: #ffffff;
+}
+
+.ui-button--danger {
+  background-color: var(--error-color);
+  color: #ffffff;
+}
+
+.ui-button--default {
+  background-color: var(--bg-disabled);
+  color: var(--text-primary);
+}
+
+.ui-button--plain.ui-button--primary {
+  background-color: rgba(255, 107, 0, 0.1);
+  color: var(--primary-color);
+}
+
+.ui-button--plain.ui-button--success {
+  background-color: rgba(82, 196, 26, 0.1);
+  color: var(--success-color);
+}
+
+.ui-button--plain.ui-button--warning {
+  background-color: rgba(250, 173, 20, 0.1);
+  color: var(--warning-color);
+}
+
+.ui-button--plain.ui-button--danger {
+  background-color: rgba(255, 77, 79, 0.1);
+  color: var(--error-color);
+}
+
+/* Size */
+.ui-button--small {
+  height: 48rpx;
+  font-size: 24rpx;
+  padding: 0 20rpx;
+}
+
+.ui-button--medium {
+  height: 64rpx;
+  font-size: 28rpx;
+  padding: 0 32rpx;
+}
+
+.ui-button--large {
+  height: 80rpx;
+  font-size: 32rpx;
+  padding: 0 48rpx;
+}
+
+/* Round */
+.ui-button--round {
+  border-radius: var(--radius-full);
+}
+
+/* Circle */
+.ui-button--circle {
+  border-radius: 50%;
+  width: 64rpx;
+  height: 64rpx;
+  padding: 0;
+}
+
+.ui-button--circle.ui-button--small {
+  width: 48rpx;
+  height: 48rpx;
+}
+
+.ui-button--circle.ui-button--large {
+  width: 80rpx;
+  height: 80rpx;
+}
+
+/* Block */
+.ui-button--block {
+  display: flex;
+  width: 100%;
+}
+
+/* Disabled */
+.ui-button--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Loading */
+.ui-button--loading {
+  pointer-events: none;
+}
+
+.ui-button__loading {
+  width: 32rpx;
+  height: 32rpx;
+  margin-right: 8rpx;
+  border: 3rpx solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: ui-rotate 0.8s linear infinite;
+}
+
+/* Hover */
+.ui-button--hover {
+  opacity: 0.8;
+}
+
+@keyframes ui-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ==================== Input ==================== */
+.ui-input {
+  width: 100%;
+  height: 72rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  background-color: var(--bg-primary);
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-small);
+  color: var(--text-primary);
+}
+
+.ui-input--placeholder {
+  color: var(--text-hint);
+}
+
+/* ==================== Card ==================== */
+.ui-card {
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-normal);
+  box-shadow: var(--shadow-light);
+  overflow: hidden;
+}
+
+.ui-card--hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ui-card--hover:active {
+  transform: scale(0.98);
+  box-shadow: none;
+}
+
+/* ==================== Badge ==================== */
+.ui-badge {
+  position: relative;
+  display: inline-flex;
+}
+
+.ui-badge__dot {
+  position: absolute;
+  top: -4rpx;
+  right: -4rpx;
+  width: 16rpx;
+  height: 16rpx;
+  background-color: var(--error-color);
+  border-radius: 50%;
+}
+
+.ui-badge__count {
+  position: absolute;
+  top: -8rpx;
+  right: -12rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  padding: 0 8rpx;
+  font-size: 20rpx;
+  line-height: 32rpx;
+  text-align: center;
+  color: #ffffff;
+  background-color: var(--error-color);
+  border-radius: var(--radius-full);
+  transform: translateX(50%);
+}
+
+.ui-badge__count--hidden {
+  display: none;
+}
+
+/* ==================== Empty ==================== */
+.ui-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 60rpx;
+}
+
+.ui-empty__icon {
+  width: 200rpx;
+  height: 200rpx;
+  margin-bottom: 32rpx;
+  font-size: 120rpx;
+  line-height: 200rpx;
+  text-align: center;
+  opacity: 0.4;
+}
+
+.ui-empty__image {
+  width: 200rpx;
+  height: 200rpx;
+  margin-bottom: 32rpx;
+}
+
+.ui-empty__text {
+  font-size: 28rpx;
+  color: var(--text-hint);
+  text-align: center;
+}
+
+/* ==================== Loading ==================== */
+.ui-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60rpx;
+}
+
+.ui-loading__spinner {
+  border: 4rpx solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: ui-rotate 0.8s linear infinite;
+}
+
+.ui-loading__spinner--small {
+  width: 32rpx;
+  height: 32rpx;
+  border-width: 3rpx;
+}
+
+.ui-loading__spinner--medium {
+  width: 48rpx;
+  height: 48rpx;
+  border-width: 4rpx;
+}
+
+.ui-loading__spinner--large {
+  width: 64rpx;
+  height: 64rpx;
+  border-width: 5rpx;
+}
+
+.ui-loading__circular {
+  width: 64rpx;
+  height: 64rpx;
+  border: 4rpx solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: ui-rotate 1s linear infinite;
+}
+
+.ui-loading__text {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+/* ==================== Price ==================== */
+.ui-price {
+  display: inline-flex;
+  align-items: baseline;
+  color: var(--primary-color);
+}
+
+.ui-price__symbol {
+  font-size: 24rpx;
+}
+
+.ui-price__integer {
+  font-weight: bold;
+}
+
+.ui-price--small .ui-price__symbol {
+  font-size: 20rpx;
+}
+
+.ui-price--small .ui-price__integer {
+  font-size: 28rpx;
+}
+
+.ui-price--medium .ui-price__symbol {
+  font-size: 24rpx;
+}
+
+.ui-price--medium .ui-price__integer {
+  font-size: 36rpx;
+}
+
+.ui-price--large .ui-price__symbol {
+  font-size: 28rpx;
+}
+
+.ui-price--large .ui-price__integer {
+  font-size: 48rpx;
+}
+
+.ui-price__decimal {
+  font-size: 0.6em;
+}
+
+/* ==================== Tag ==================== */
+.ui-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12rpx;
+  font-size: 22rpx;
+  border-radius: var(--radius-small);
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.ui-tag--primary {
+  background-color: rgba(255, 107, 0, 0.1);
+  color: var(--primary-color);
+}
+
+.ui-tag--success {
+  background-color: rgba(82, 196, 26, 0.1);
+  color: var(--success-color);
+}
+
+.ui-tag--warning {
+  background-color: rgba(250, 173, 20, 0.1);
+  color: var(--warning-color);
+}
+
+.ui-tag--danger {
+  background-color: rgba(255, 77, 79, 0.1);
+  color: var(--error-color);
+}
+
+.ui-tag--info {
+  background-color: rgba(24, 144, 255, 0.1);
+  color: var(--info-color);
+}
+
+.ui-tag--small {
+  padding: 0 8rpx;
+  font-size: 18rpx;
+}
+
+.ui-tag--plain {
+  background-color: transparent;
+}
+
+.ui-tag--round {
+  border-radius: var(--radius-full);
+}
+
+/* ==================== Divider ==================== */
+.ui-divider {
+  height: 1rpx;
+  background-color: var(--border-color);
+}
+
+/* ==================== SafeArea ==================== */
+.ui-safe-area--top {
+  padding-top: var(--safe-area-top, env(safe-area-inset-top));
+}
+
+.ui-safe-area--bottom {
+  padding-bottom: var(--safe-area-bottom, env(safe-area-inset-bottom));
+}
+
+.ui-safe-area--both {
+  padding-top: var(--safe-area-top, env(safe-area-inset-top));
+  padding-bottom: var(--safe-area-bottom, env(safe-area-inset-bottom));
+}

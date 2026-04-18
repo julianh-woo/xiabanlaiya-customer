@@ -1,0 +1,88 @@
+.reservations-page {
+  min-height: 100vh;
+  background-color: var(--bg-secondary);
+}
+
+.page-header {
+  padding: 24rpx;
+  background-color: #ffffff;
+  margin-bottom: 16rpx;
+}
+
+.reservation-list {
+  padding: 0 24rpx 24rpx;
+}
+
+.section {
+  margin-bottom: 32rpx;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 0;
+  font-size: 28rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.section-count {
+  font-size: 24rpx;
+  color: var(--text-hint);
+  font-weight: normal;
+}
+
+/* 预约卡片 */
+.reservation-card {
+  background-color: #ffffff;
+  border-radius: var(--radius-normal);
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: var(--shadow-light);
+}
+
+.reservation-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid var(--border-light);
+}
+
+.reservation-date {
+  font-size: 32rpx;
+  color: var(--text-primary);
+  font-weight: bold;
+}
+
+.reservation-card__content {
+  padding: 20rpx 0;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-icon {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+}
+
+.info-text {
+  font-size: 28rpx;
+  color: var(--text-secondary);
+}
+
+.reservation-card__action {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 20rpx;
+  border-top: 1rpx solid var(--border-light);
+}

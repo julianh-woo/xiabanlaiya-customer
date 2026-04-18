@@ -1,0 +1,167 @@
+.orders-page {
+  min-height: 100vh;
+  background-color: var(--bg-secondary);
+}
+
+/* 订单 Tab */
+.order-tabs {
+  display: flex;
+  background-color: #ffffff;
+  padding: 0 16rpx;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.order-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 0;
+  font-size: 28rpx;
+  color: var(--text-secondary);
+  position: relative;
+}
+
+.order-tab--active {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.order-tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48rpx;
+  height: 6rpx;
+  background-color: var(--primary-color);
+  border-radius: 3rpx;
+}
+
+/* 订单列表 */
+.order-list {
+  padding: 24rpx;
+}
+
+/* 订单卡片 */
+.order-card {
+  background-color: #ffffff;
+  border-radius: var(--radius-normal);
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: var(--shadow-light);
+}
+
+.order-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid var(--border-light);
+}
+
+.order-no {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.order-card__items {
+  padding: 20rpx 0;
+}
+
+.order-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.order-item:last-of-type {
+  margin-bottom: 0;
+}
+
+.order-item__image {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: var(--radius-small);
+  background-color: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.order-item__info {
+  flex: 1;
+  margin-left: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.order-item__name {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-item__quantity {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  margin-left: 16rpx;
+  flex-shrink: 0;
+}
+
+.more-items {
+  font-size: 24rpx;
+  color: var(--text-hint);
+  display: block;
+  margin-top: 12rpx;
+  text-align: center;
+}
+
+.order-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 20rpx;
+  border-top: 1rpx solid var(--border-light);
+}
+
+.order-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.order-time {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.order-delivery {
+  font-size: 22rpx;
+  color: var(--text-hint);
+}
+
+.order-amount {
+  display: flex;
+  align-items: baseline;
+}
+
+.amount-label {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  margin-right: 8rpx;
+}
+
+.order-card__action {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid var(--border-light);
+}

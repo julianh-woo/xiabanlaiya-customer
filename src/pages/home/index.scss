@@ -1,0 +1,208 @@
+.home-page {
+  min-height: 100vh;
+  background-color: var(--bg-secondary);
+  padding-bottom: calc(140rpx + var(--safe-area-bottom, env(safe-area-inset-bottom)));
+}
+
+/* 顶部 Banner */
+.home-banner {
+  background: linear-gradient(135deg, #FF6B00 0%, #FF8C33 100%);
+  padding: 32rpx;
+  position: relative;
+  overflow: hidden;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.banner-title {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.banner-subtitle {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.banner-image {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 80rpx;
+  opacity: 0.9;
+}
+
+/* 营业状态 Banner */
+.business-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx 32rpx;
+  gap: 12rpx;
+}
+
+.business-banner--open {
+  background: linear-gradient(135deg, #52C41A 0%, #73D13D 100%);
+  color: #ffffff;
+}
+
+.business-banner--closed {
+  background: linear-gradient(135deg, #666666 0%, #999999 100%);
+  color: #ffffff;
+}
+
+.business-banner__icon {
+  font-size: 24rpx;
+}
+
+.business-banner__text {
+  font-size: 24rpx;
+}
+
+/* 分类 Tab */
+.category-tabs {
+  background-color: #ffffff;
+  padding: 16rpx 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: var(--shadow-light);
+}
+
+.category-tabs__scroll {
+  white-space: nowrap;
+  padding: 0 16rpx;
+}
+
+.category-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12rpx 40rpx;
+  margin: 0 12rpx;
+  font-size: 28rpx;
+  color: var(--text-secondary);
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-full);
+  transition: all 0.2s ease;
+}
+
+.category-tab:active {
+  transform: scale(0.95);
+}
+
+.category-tab--active {
+  background-color: var(--primary-color);
+  color: #ffffff;
+}
+
+/* 商品列表 */
+.product-list {
+  padding: 24rpx;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24rpx;
+}
+
+.product-grid__item {
+  min-width: 0;
+}
+
+/* 购物车浮动按钮 */
+.cart-float-btn {
+  position: fixed;
+  right: 32rpx;
+  bottom: calc(140rpx + var(--safe-area-bottom, env(safe-area-inset-bottom)));
+  z-index: 100;
+}
+
+.cart-float-btn__icon {
+  width: 100rpx;
+  height: 100rpx;
+  background: linear-gradient(135deg, #FF6B00 0%, #FF8C33 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+  color: #ffffff;
+  box-shadow: 0 4rpx 16rpx rgba(255, 107, 0, 0.4);
+}
+
+.cart-float-btn__icon:active {
+  transform: scale(0.95);
+}
+
+/* 店铺关闭状态 */
+.business-closed-banner {
+  background: linear-gradient(135deg, #666666 0%, #999999 100%);
+  padding: 16rpx 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 26rpx;
+}
+
+/* 错误状态 */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 32rpx;
+  gap: 24rpx;
+}
+
+.error-state text {
+  color: var(--text-secondary);
+  font-size: 28rpx;
+}
+
+.retry-btn {
+  padding: 16rpx 48rpx;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border-radius: var(--radius-full);
+  font-size: 28rpx;
+}
+
+/* 购物车浮动球（新样式） */
+.cart-float {
+  position: fixed;
+  right: 32rpx;
+  bottom: calc(160rpx + var(--safe-area-bottom, env(safe-area-inset-bottom)));
+  z-index: 100;
+  width: 100rpx;
+  height: 100rpx;
+  background: linear-gradient(135deg, #FF6B00 0%, #FF8C33 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 16rpx rgba(255, 107, 0, 0.4);
+}
+
+.cart-float__count {
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.cart-float:active {
+  transform: scale(0.95);
+  opacity: 0.9;
+}

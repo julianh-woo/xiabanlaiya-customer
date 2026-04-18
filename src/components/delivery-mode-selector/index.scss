@@ -1,0 +1,94 @@
+.delivery-mode-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.delivery-option {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  background-color: var(--bg-primary);
+  border: 2rpx solid var(--border-color);
+  border-radius: var(--radius-normal);
+  transition: all 0.2s ease;
+}
+
+.delivery-option:active {
+  background-color: var(--bg-secondary);
+}
+
+.delivery-option--selected {
+  border-color: var(--primary-color);
+  background-color: rgba(255, 107, 0, 0.05);
+}
+
+.delivery-option--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.delivery-option__icon {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  margin-right: 16rpx;
+}
+
+.delivery-option__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.delivery-option__label {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.delivery-option__desc {
+  font-size: 22rpx;
+  color: var(--text-secondary);
+  margin-top: 4rpx;
+}
+
+.delivery-option__fee {
+  margin-right: 16rpx;
+}
+
+.fee-free {
+  font-size: 24rpx;
+  color: var(--success-color);
+}
+
+.fee-text {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.delivery-option--selected .fee-text {
+  color: var(--primary-color);
+}
+
+.delivery-option__check {
+  width: 40rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: var(--primary-color);
+}
+
+.delivery-option__check text {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.delivery-option--selected .delivery-option__check text {
+  opacity: 1;
+}

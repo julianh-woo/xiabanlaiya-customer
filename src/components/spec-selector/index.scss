@@ -1,0 +1,423 @@
+
+.spec-selector-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1001;
+  animation: fadeIn 0.2s ease;
+}
+
+.spec-selector {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 80vh;
+  background-color: #ffffff;
+  border-radius: var(--radius-large) var(--radius-large) 0 0;
+  z-index: 1002;
+  animation: slideUp 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.spec-selector__header {
+  display: flex;
+  padding: 24rpx;
+  border-bottom: 1rpx solid var(--border-color);
+  position: relative;
+}
+
+.spec-selector__product {
+  display: flex;
+  flex: 1;
+}
+
+.spec-selector__image {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: var(--radius-small);
+  background-color: var(--bg-secondary);
+}
+
+.spec-selector__info {
+  margin-left: 20rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-bottom: 8rpx;
+}
+
+.spec-selector__name {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+  max-width: 400rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spec-selector__price {
+  font-size: 32rpx;
+  color: var(--primary-color);
+  font-weight: bold;
+  margin-top: 12rpx;
+}
+
+.spec-selector__close {
+  position: absolute;
+  top: 24rpx;
+  right: 24rpx;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-hint);
+  font-size: 32rpx;
+}
+
+.spec-selector__close:active {
+  opacity: 0.7;
+}
+
+.spec-selector__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24rpx;
+}
+
+.spec-selector__label {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.spec-selector__fixed,
+.spec-selector__weight,
+.spec-selector__quantity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 0;
+}
+
+.spec-selector__stepper,
+.spec-selector__weight-input {
+  display: flex;
+  align-items: center;
+}
+
+.stepper-btn {
+  width: 56rpx;
+  height: 56rpx;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-small);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: var(--text-primary);
+}
+
+.stepper-btn:active {
+  background-color: var(--border-color);
+}
+
+.stepper-value {
+  width: 80rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: var(--text-primary);
+}
+
+.spec-selector__custom {
+  padding-bottom: 24rpx;
+}
+
+.spec-selector__option {
+  margin-bottom: 32rpx;
+}
+
+.option-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.option-name {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.option-required {
+  font-size: 22rpx;
+  color: var(--error-color);
+  margin-left: 12rpx;
+  padding: 2rpx 8rpx;
+  background-color: rgba(255, 77, 79, 0.1);
+  border-radius: 4rpx;
+}
+
+.option-multiple {
+  font-size: 22rpx;
+  color: var(--info-color);
+  margin-left: 12rpx;
+  padding: 2rpx 8rpx;
+  background-color: rgba(24, 144, 255, 0.1);
+  border-radius: 4rpx;
+}
+
+.option-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.option-item {
+  padding: 12rpx 24rpx;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-small);
+  border: 2rpx solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 140rpx;
+}
+
+.option-item:active {
+  background-color: var(--border-color);
+}
+
+.option-item--selected {
+  background-color: rgba(255, 107, 0, 0.1);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.option-item__name {
+  font-size: 26rpx;
+  color: inherit;
+}
+
+.option-item__price {
+  font-size: 22rpx;
+  color: var(--text-secondary);
+  margin-top: 4rpx;
+}
+
+.option-item--selected .option-item__price {
+  color: var(--primary-color);
+}
+
+.spec-selector__footer {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  padding-bottom: calc(24rpx + var(--safe-area-bottom, env(safe-area-inset-bottom)));
+  border-top: 1rpx solid var(--border-color);
+  gap: 24rpx;
+}
+
+.spec-selector__total {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+}
+
+.total-label {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+.total-price {
+  font-size: 36rpx;
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+/* 规格选择器扩展样式 - 称重类型 */
+
+/* 规格区域容器 */
+.spec-section {
+  margin-bottom: 32rpx;
+}
+
+.spec-section__label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.spec-section__label text {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.spec-section__hint {
+  font-size: 24rpx;
+  color: var(--text-hint);
+  margin-left: 12rpx;
+  font-weight: normal;
+}
+
+/* 重量控制区域 */
+.spec-section__weight-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.weight-adjust-btn {
+  width: 100rpx;
+  height: 80rpx;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-small);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.weight-adjust-btn:active {
+  background-color: var(--border-color);
+}
+
+.weight-display {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.weight-input {
+  width: 120rpx;
+  height: 80rpx;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-small);
+  text-align: center;
+  font-size: 36rpx;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.weight-unit {
+  font-size: 28rpx;
+  color: var(--text-secondary);
+}
+
+/* 重量预设按钮 */
+.weight-presets {
+  display: flex;
+  justify-content: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.weight-preset {
+  padding: 12rpx 24rpx;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-small);
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.weight-preset--active {
+  background-color: rgba(255, 107, 0, 0.1);
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.weight-preset:active {
+  opacity: 0.7;
+}
+
+/* 单价说明 */
+.spec-section__price-note {
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--text-hint);
+}
+
+/* 自定义规格类型 */
+.spec-section--custom {
+  padding-bottom: 24rpx;
+}
+
+/* 选项组 */
+.option-group {
+  margin-bottom: 32rpx;
+}
+
+.option-group__header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.option-group__name {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.option-group__required {
+  font-size: 22rpx;
+  color: var(--error-color);
+  margin-left: 12rpx;
+  padding: 2rpx 8rpx;
+  background-color: rgba(255, 77, 79, 0.1);
+  border-radius: 4rpx;
+}
+
+.option-group__optional {
+  font-size: 22rpx;
+  color: var(--text-hint);
+  margin-left: 12rpx;
+}
+
+.option-group__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+/* 数量选择（自定义规格中） */
+.option-group--quantity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16rpx;
+  border-top: 1rpx solid var(--border-color);
+}
+
+.option-group--quantity .option-group__header {
+  margin-bottom: 0;
+}
+
+/* 价格折扣样式 */
+.option-item__price--discount {
+  color: var(--success-color);
+}

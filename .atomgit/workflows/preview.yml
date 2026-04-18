@@ -1,0 +1,42 @@
+name: 小程序预览
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 编译小程序
+        run: npm run build:weapp
+
+      - name: 预览
+        id: preview
+        uses: crazyurus/miniprogram-action@v2
+        with:
+          action_type: preview
+          project_path: ./dist
+        env:
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+
+      - name: 生成预览二维码
+        if: steps.preview.outputs.preview_qrcode
+        run: |
+          echo "${{ steps.preview.outputs.preview_qrcode }}" | base64 -d > preview-qr.png
+
+      - name: 上传二维码
+        if: steps.preview.outputs.preview_qrcode
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-qrcode
+          path: preview-qr.png

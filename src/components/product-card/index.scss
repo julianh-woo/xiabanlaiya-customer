@@ -1,0 +1,139 @@
+.product-card {
+  background-color: #ffffff;
+  border-radius: var(--radius-normal);
+  overflow: hidden;
+  box-shadow: var(--shadow-light);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:active {
+  transform: scale(0.98);
+}
+
+.product-card--disabled {
+  opacity: 0.7;
+}
+
+.product-card__image-wrap {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 100%;
+  overflow: hidden;
+}
+
+.product-card__image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-secondary);
+}
+
+.stock-tag {
+  position: absolute;
+  top: 12rpx;
+  right: 12rpx;
+  padding: 4rpx 12rpx;
+  font-size: 20rpx;
+  color: #ffffff;
+  border-radius: var(--radius-full);
+  z-index: 1;
+}
+
+.stock-tag--normal {
+  background-color: rgba(82, 196, 26, 0.9);
+}
+
+.stock-tag--low {
+  background-color: rgba(250, 173, 20, 0.9);
+}
+
+.stock-tag--soldout {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+/* 商品标签 */
+.product-tags {
+  position: absolute;
+  top: 12rpx;
+  left: 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  z-index: 1;
+}
+
+.product-tag {
+  padding: 4rpx 12rpx;
+  font-size: 18rpx;
+  color: #ffffff;
+  border-radius: var(--radius-full);
+}
+
+.product-tag--0 {
+  background: linear-gradient(135deg, #FF6B00 0%, #FF8C33 100%);
+}
+
+.product-tag--1 {
+  background: linear-gradient(135deg, #52C41A 0%, #73D13D 100%);
+}
+
+.product-card__content {
+  padding: 16rpx;
+}
+
+.product-card__name {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+  line-height: 1.4;
+  min-height: 40rpx;
+}
+
+.product-card__desc {
+  display: block;
+  font-size: 22rpx;
+  color: var(--text-secondary);
+  margin-top: 8rpx;
+  max-height: 24rpx;
+}
+
+.product-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12rpx;
+}
+
+.product-card__price {
+  flex: 1;
+  min-width: 0;
+}
+
+.product-card__price-text {
+  font-size: 28rpx;
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.product-card__add-btn {
+  width: 48rpx;
+  height: 48rpx;
+  background-color: var(--primary-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: bold;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+}
+
+.product-card__add-btn:active {
+  opacity: 0.8;
+  transform: scale(0.95);
+}

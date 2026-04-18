@@ -1,0 +1,154 @@
+/* 通知列表页样式 */
+.notifications-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.tab-bar {
+  display: flex;
+  background: #fff;
+  padding: 0 32px;
+  border-bottom: 1px solid #eee;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 0;
+  font-size: 28px;
+  color: #999;
+  position: relative;
+}
+
+.tab-item.active {
+  color: #333;
+  font-weight: 500;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 4px;
+  background: #1677ff;
+  border-radius: 2px;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  background: #ff4d4f;
+  color: #fff;
+  font-size: 20px;
+  border-radius: 16px;
+}
+
+.notification-list {
+  padding: 20px;
+}
+
+.notification-item {
+  display: flex;
+  gap: 20px;
+  padding: 24px;
+  background: #fff;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.notification-item.unread {
+  background: linear-gradient(135deg, #f0f5ff 0%, #fff 100%);
+}
+
+.notification-icon {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 16px;
+  font-size: 40px;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.type-tag {
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 20px;
+}
+
+.bg-purple-light { background: #f3e8ff; }
+.text-purple { color: #722ed1; }
+
+.bg-orange-light { background: #fff7e6; }
+.text-orange { color: #d46b00; }
+
+.bg-green-light { background: #f6ffed; }
+.text-green { color: #389e0d; }
+
+.unread-dot {
+  width: 12px;
+  height: 12px;
+  background: #1677ff;
+  border-radius: 50%;
+}
+
+.notification-title {
+  font-size: 28px;
+  font-weight: 500;
+  color: #333;
+  line-height: 1.4;
+}
+
+.notification-desc {
+  font-size: 24px;
+  color: #999;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notification-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.notification-time {
+  font-size: 22px;
+  color: #bbb;
+}
+
+.unread-text {
+  font-size: 22px;
+  color: #1677ff;
+}
