@@ -1,0 +1,44 @@
+name: 小程序预览
+
+image: node:18
+
+stages:
+  - install
+  - build
+  - preview
+
+cache:
+  paths:
+    - node_modules/
+
+install:
+  stage: install
+  name: 安装依赖
+  script:
+    - npm install
+    - npm install miniprogram-ci
+
+build:
+  stage: build
+  name: 编译小程序
+  needs:
+    - install
+  script:
+    - npm run build:weapp
+
+preview:
+  stage: preview
+  name: 预览小程序
+  needs:
+    - build
+  script:
+    - echo "$PRIVATE_KEY_BASE64" | base64 -d > private.key
+    - chmod 600 private.key
+    - node preview.js
+  artifacts:
+    paths:
+      - preview-qrcode.jpg
+    expire_in: 1 day
+  only:
+    - master
+    - main
