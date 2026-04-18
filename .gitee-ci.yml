@@ -7,14 +7,11 @@ stages:
   - build
   - preview
 
-cache:
-  paths:
-    - node_modules/
-
 install:
   stage: install
   name: 安装依赖
   script:
+    - cd .
     - npm install
     - npm install miniprogram-ci
 
@@ -23,8 +20,14 @@ build:
   name: 编译小程序
   needs:
     - install
+  caches:
+    - node_modules
   script:
     - npm run build:weapp
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
 
 preview:
   stage: preview
@@ -32,13 +35,38 @@ preview:
   needs:
     - build
   script:
-    - echo "$PRIVATE_KEY_BASE64" | base64 -d > private.key
-    - chmod 600 private.key
-    - node preview.js
+    - echo "$PRIVATE_KEY_BASE64" | base64 -d > ./private.key
+    - chmod 600 ./private.key
+    - node -e "
+        const ci = require('miniprogram-ci');
+        const project = new ci.Project({
+          appid: 'wxc48691a5b138cfdb',
+          type: 'miniProgram',
+          projectPath: './dist',
+          privateKeyPath: './private.key',
+          ignores: ['node_modules/**/*'],
+        });
+        ci.preview({
+          project,
+          desc: 'Gitee Go 自动预览',
+          setting: {
+            es6: true,
+            minify: true,
+            minifyWXSS: true,
+            minifyWXML: true,
+          },
+          qrcodeFormat: 'image',
+          qrcodeOutputDest: './preview-qrcode.jpg',
+        }).then(res => {
+          console.log('预览成功:', JSON.stringify(res));
+        }).catch(err => {
+          console.error('预览失败:', err);
+          process.exit(1);
+        });
+      "
   artifacts:
     paths:
       - preview-qrcode.jpg
     expire_in: 1 day
   only:
     - master
-    - main
