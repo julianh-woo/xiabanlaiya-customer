@@ -26,6 +26,7 @@ const config: IConfig = {
     '@/context': './src/context',
     '@/network': './src/network',
     '@/styles': './src/styles',
+    '@/utils': './src/utils',
   },
 };
 

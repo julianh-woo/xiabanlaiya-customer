@@ -4,15 +4,15 @@ import { Button, Input, Price, Loading, Dialog } from '@/components/ui';
 import { DeliveryModeSelector, DeliveryMode } from '@/components/delivery-mode-selector';
 import { useCart, CartItem } from '@/context/CartContext';
 import { useLedger } from '@/context/LedgerContext';
-import { post as apiPost } from '@/shared/network/request';
+import { post as apiPost, get as apiGet } from '@/network/request';
 import './index.scss';
 
 // API 基础配置
-const API_BASE = 'http://175.27.158.118:5000/api';
+const API_BASE = 'https://cozejifen.haiei.cn/api';
 const TENANT_ID = 'default';
 
 // 支付方式
-type PayMethod = 'in_store' | 'online' | 'ledger';
+type PayMethod = 'in_store' | 'online' | 'balance';
 
 interface DeliveryAddress {
   name: string;
@@ -29,7 +29,7 @@ interface CreateOrderRequest {
     unit: string;
   }[];
   deliveryType: 'self_pickup' | 'local_delivery' | 'express_shipping';
-  paymentType: 'in_store' | 'online' | 'ledger';
+  paymentType: 'in_store' | 'online' | 'balance';
   deliveryAddress?: DeliveryAddress;
   note?: string;
 }
@@ -40,10 +40,23 @@ interface CreateOrderResponse {
   status: string;
 }
 
+interface PayRequest {
+  paymentMethod: 'wechat' | 'balance';
+}
+
+interface PayResponse {
+  paySign: string;
+  timeStamp: string;
+  nonceStr: string;
+  package: string;
+  signType: string;
+}
+
 const Checkout: React.FC = () => {
   const { items, removeItem, clear } = useCart();
-  const { balance, pay } = useLedger();
+  const { balance, refresh: refreshBalance, pay } = useLedger();
   const [isLoading, setIsLoading] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // 配送方式
@@ -51,7 +64,6 @@ const Checkout: React.FC = () => {
 
   // 支付方式
   const [payMethod, setPayMethod] = useState<PayMethod>('in_store');
-  const [isCreditEnabled] = useState(false);
 
   // 联系人信息
   const [contactName, setContactName] = useState('');
@@ -64,12 +76,22 @@ const Checkout: React.FC = () => {
   // 选中结算的商品
   const [checkoutItems, setCheckoutItems] = useState<CartItem[]>([]);
 
+  // 店铺信息
+  const [shopInfo, setShopInfo] = useState({
+    name: '下班来鸭',
+    address: '',
+    phone: '',
+    hours: '',
+  });
+
   // 费用计算
   const deliveryFee = deliveryMode === 'pickup' ? 0 : deliveryMode === 'local' ? 5 : 10;
   const goodsAmount = checkoutItems.reduce((sum, item) => sum + item.totalPrice, 0);
   const totalAmount = goodsAmount + deliveryFee;
 
   useEffect(() => {
+    refreshBalance();
+    
     // 获取选中的商品
     const selectedIds = Taro.getStorageSync('checkout_items') || [];
     if (selectedIds.length > 0) {
@@ -87,7 +109,31 @@ const Checkout: React.FC = () => {
     if (savedName) setContactName(savedName);
     if (savedPhone) setContactPhone(savedPhone);
     if (savedAddress) setAddress(savedAddress);
+
+    // 获取店铺信息
+    fetchShopInfo();
   }, [items]);
+
+  /**
+   * 获取店铺信息
+   */
+  const fetchShopInfo = async () => {
+    try {
+      const res = await apiGet<any>('/shop/info', {
+        tenantId: TENANT_ID,
+      });
+      if (res.data) {
+        setShopInfo({
+          name: res.data.name || '下班来鸭',
+          address: res.data.address || '',
+          phone: res.data.phone || '',
+          hours: res.data.businessHours || '',
+        });
+      }
+    } catch (err) {
+      console.error('获取店铺信息失败:', err);
+    }
+  };
 
   const handleDeliveryModeChange = (mode: DeliveryMode) => {
     setDeliveryMode(mode);
@@ -159,14 +205,14 @@ const Checkout: React.FC = () => {
     }
 
     // 在线支付时检查余额
-    if (payMethod === 'online' && balance < totalAmount) {
+    if (payMethod === 'balance' && balance < totalAmount) {
       const confirmed = await Dialog.confirm({
         title: '余额不足',
         message: `您的积分余额为 ${balance.toFixed(2)}，订单金额为 ${totalAmount.toFixed(2)}，是否前往充值？`,
         confirmText: '去充值',
       });
       if (confirmed) {
-        Taro.showToast({ title: '充值功能开发中', icon: 'none' });
+        Taro.navigateTo({ url: '/pages/points-mall/index' });
       }
       return;
     }
@@ -200,81 +246,111 @@ const Checkout: React.FC = () => {
       };
 
       // 调用创建订单 API
-      let orderNo = '';
+      const res = await apiPost<CreateOrderResponse>('/orders', orderData, {
+        tenantId: TENANT_ID,
+      });
+
       let orderId = '';
+      let orderNo = '';
 
-      try {
-        const res = await apiPost<CreateOrderResponse>('/orders', orderData, {
-          tenantId: TENANT_ID,
-        });
-
-        if (res.data) {
-          orderNo = res.data.orderNo;
-          orderId = res.data.id;
-        } else {
-          // API 返回格式不符合预期，使用本地生成
-          orderNo = `ORD${Date.now()}`;
-        }
-      } catch (apiError) {
-        console.error('API 调用失败:', apiError);
-        // API 不可用时使用模拟订单号
-        orderNo = `ORD${Date.now()}`;
+      if (res.data) {
+        orderId = res.data.id;
+        orderNo = res.data.orderNo;
+      } else {
+        throw new Error('创建订单失败');
       }
 
-      // 如果是在线支付，扣除积分
+      // 执行支付
       if (payMethod === 'online') {
-        const paySuccess = await pay(orderNo, totalAmount);
-        if (!paySuccess) {
-          Taro.showToast({ title: '支付失败，请重试', icon: 'none' });
-          setIsLoading(false);
-          return;
-        }
+        await handlePay(orderId, orderNo);
+      } else if (payMethod === 'balance') {
+        await handleBalancePay(orderId);
+      } else {
+        // 到店支付
+        Taro.showToast({ title: '下单成功', icon: 'success' });
       }
 
       // 清除已结算的商品
       checkoutItems.forEach(item => {
         removeItem(item.id);
       });
-
-      // 保存订单到本地记录
-      const orderHistory = Taro.getStorageSync('order_history') || [];
-      orderHistory.unshift({
-        orderId,
-        orderNo,
-        items: checkoutItems,
-        totalAmount,
-        status: payMethod === 'in_store' ? 'pending' : 'paid',
-        deliveryMode,
-        contactName,
-        contactPhone,
-        address: deliveryMode !== 'pickup' ? address : undefined,
-        createdAt: new Date().toISOString(),
-      });
-      Taro.setStorageSync('order_history', orderHistory);
-
-      Taro.showToast({ title: '下单成功', icon: 'success' });
+      Taro.removeStorageSync('checkout_items');
 
       // 跳转到订单详情
       setTimeout(() => {
         Taro.redirectTo({
-          url: `/pages/order-detail/index?orderNo=${orderNo}&fromCheckout=true`,
+          url: `/pages/order-detail/index?id=${orderId}`,
         });
       }, 1500);
-    } catch (error) {
-      console.error('Checkout error:', error);
-      setError('下单失败，请重试');
-      Taro.showToast({ title: '下单失败，请重试', icon: 'none' });
+    } catch (err: any) {
+      console.error('下单失败:', err);
+      setError(err.message || '下单失败，请重试');
+      Taro.showToast({ title: err.message || '下单失败，请重试', icon: 'none' });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 店铺信息
-  const shopInfo = {
-    name: '下班来鸭卤味店',
-    address: 'XX市XX区XX路123号',
-    phone: '400-888-8888',
-    hours: '10:00 - 22:00',
+  /**
+   * 微信支付
+   */
+  const handlePay = async (orderId: string, orderNo: string) => {
+    setIsPaying(true);
+    try {
+      // 调用后端获取支付参数
+      const res = await apiPost<PayResponse>(`/orders/${orderId}/pay`, {
+        paymentMethod: 'wechat',
+      } as PayRequest, {
+        tenantId: TENANT_ID,
+      });
+
+      if (res.data) {
+        // 调用微信支付
+        const payResult = await Taro.requestPayment({
+          timeStamp: res.data.timeStamp,
+          nonceStr: res.data.nonceStr,
+          package: res.data.package,
+          signType: res.data.signType,
+          paySign: res.data.paySign,
+        });
+
+        if (payResult.errMsg === 'requestPayment:ok') {
+          Taro.showToast({ title: '支付成功', icon: 'success' });
+          refreshBalance();
+        } else {
+          Taro.showToast({ title: '支付取消', icon: 'none' });
+        }
+      }
+    } catch (err: any) {
+      console.error('微信支付失败:', err);
+      Taro.showToast({ title: err.message || '支付失败', icon: 'none' });
+      throw err;
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
+  /**
+   * 余额支付
+   */
+  const handleBalancePay = async (orderId: string) => {
+    setIsPaying(true);
+    try {
+      await apiPost(`/orders/${orderId}/pay`, {
+        paymentMethod: 'balance',
+      } as PayRequest, {
+        tenantId: TENANT_ID,
+      });
+
+      Taro.showToast({ title: '支付成功', icon: 'success' });
+      refreshBalance();
+    } catch (err: any) {
+      console.error('余额支付失败:', err);
+      Taro.showToast({ title: err.message || '支付失败', icon: 'none' });
+      throw err;
+    } finally {
+      setIsPaying(false);
+    }
   };
 
   // 空购物车
@@ -293,7 +369,7 @@ const Checkout: React.FC = () => {
 
   return (
     <view className="checkout-page">
-      {isLoading && <Loading text="提交中..." />}
+      {(isLoading || isPaying) && <Loading text={isPaying ? '支付中...' : '提交中...'} />}
 
       {/* 错误提示 */}
       {error && (
@@ -304,7 +380,7 @@ const Checkout: React.FC = () => {
 
       <scroll-view className="checkout-content" scroll-y>
         {/* 自提点信息 */}
-        {deliveryMode === 'pickup' && (
+        {deliveryMode === 'pickup' && shopInfo.address && (
           <view className="section pickup-section">
             <view className="section__header">
               <text className="section__title">自提点</text>
@@ -312,7 +388,9 @@ const Checkout: React.FC = () => {
             <view className="pickup-info">
               <view className="pickup-info__name">{shopInfo.name}</view>
               <view className="pickup-info__address">{shopInfo.address}</view>
-              <view className="pickup-info__hours">营业时间: {shopInfo.hours}</view>
+              {shopInfo.hours && (
+                <view className="pickup-info__hours">营业时间: {shopInfo.hours}</view>
+              )}
             </view>
           </view>
         )}
@@ -399,48 +477,13 @@ const Checkout: React.FC = () => {
                       {item.pricingType === 'weight' && '/斤'}
                     </text>
                     <text className="goods-item__quantity">
-                      ×{item.pricingType === 'weight' ? `${item.weight}斤` : item.quantity}
+                      x{item.pricingType === 'weight' ? `${item.weight || 1}斤` : item.quantity}
                     </text>
                   </view>
                 </view>
-                <view className="goods-item__total">
-                  <text>¥{item.totalPrice.toFixed(2)}</text>
-                </view>
+                <Price value={item.totalPrice} size="medium" />
               </view>
             ))}
-          </view>
-        </view>
-
-        {/* 支付方式 */}
-        <view className="section payment-section">
-          <view className="section__header">
-            <text className="section__title">支付方式</text>
-          </view>
-          <view className="payment-options">
-            <view
-              className={`payment-option ${payMethod === 'in_store' ? 'payment-option--selected' : ''}`}
-              onClick={() => handlePayMethodChange('in_store')}
-            >
-              <text className="payment-option__label">到店支付</text>
-              {payMethod === 'in_store' && <text className="payment-option__check">✓</text>}
-            </view>
-            <view
-              className={`payment-option ${payMethod === 'online' ? 'payment-option--selected' : ''}`}
-              onClick={() => handlePayMethodChange('online')}
-            >
-              <text className="payment-option__label">积分支付</text>
-              <text className="payment-option__balance">余额: ¥{balance.toFixed(2)}</text>
-              {payMethod === 'online' && <text className="payment-option__check">✓</text>}
-            </view>
-            {isCreditEnabled && (
-              <view
-                className={`payment-option ${payMethod === 'ledger' ? 'payment-option--selected' : ''}`}
-                onClick={() => handlePayMethodChange('ledger')}
-              >
-                <text className="payment-option__label">记账</text>
-                {payMethod === 'ledger' && <text className="payment-option__check">✓</text>}
-              </view>
-            )}
           </view>
         </view>
 
@@ -451,27 +494,69 @@ const Checkout: React.FC = () => {
           </view>
           <Input
             className="remark-input"
-            type="text"
             value={remark}
             onChange={setRemark}
-            placeholder="有什么特殊要求？如：少辣、多加卤汁"
+            placeholder="口味偏好、特殊要求等（选填）"
             maxlength={100}
           />
         </view>
+
+        {/* 费用明细 */}
+        <view className="section fee-section">
+          <view className="fee-row">
+            <text className="fee-label">商品金额</text>
+            <Price value={goodsAmount} />
+          </view>
+          <view className="fee-row">
+            <text className="fee-label">配送费</text>
+            <Price value={deliveryFee} />
+          </view>
+        </view>
+
+        {/* 支付方式 */}
+        <view className="section payment-section">
+          <view className="section__header">
+            <text className="section__title">支付方式</text>
+          </view>
+          <view className="payment-options">
+            <view
+              className={`payment-option ${payMethod === 'in_store' ? 'active' : ''}`}
+              onClick={() => handlePayMethodChange('in_store')}
+            >
+              <text className="payment-option__icon">🏪</text>
+              <text className="payment-option__text">到店付款</text>
+            </view>
+            <view
+              className={`payment-option ${payMethod === 'online' ? 'active' : ''}`}
+              onClick={() => handlePayMethodChange('online')}
+            >
+              <text className="payment-option__icon">💳</text>
+              <text className="payment-option__text">微信支付</text>
+            </view>
+            <view
+              className={`payment-option ${payMethod === 'balance' ? 'active' : ''}`}
+              onClick={() => handlePayMethodChange('balance')}
+            >
+              <text className="payment-option__icon">💰</text>
+              <text className="payment-option__text">余额支付</text>
+              <text className="payment-option__balance">（{balance.toFixed(2)}）</text>
+            </view>
+          </view>
+        </view>
       </scroll-view>
 
-      {/* 底部结算栏 */}
+      {/* 底部固定区域 */}
       <view className="checkout-footer">
-        <view className="checkout-footer__amount">
-          <text className="amount-label">合计</text>
-          <text className="amount-value">¥{totalAmount.toFixed(2)}</text>
+        <view className="total-amount">
+          <text className="total-label">合计：</text>
+          <Price value={totalAmount} size="large" />
         </view>
         <Button
           type="primary"
           size="large"
-          className="checkout-footer__btn"
+          className="submit-btn"
           onClick={handleSubmit}
-          loading={isLoading}
+          disabled={isLoading || isPaying}
         >
           提交订单
         </Button>

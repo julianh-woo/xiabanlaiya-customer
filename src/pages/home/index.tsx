@@ -8,11 +8,11 @@ import { Badge, Empty, Loading } from '@/components/ui';
 import { useCart } from '@/context/CartContext';
 import { SpecSelector } from '@/components/spec-selector';
 import { SelectedOption } from '@/context/CartContext';
-import { get as apiGet } from '@/shared/network/request';
+import { get as apiGet } from '@/network/request';
 import './index.scss';
 
 // API 基础配置
-const API_BASE = 'http://175.27.158.118:5000/api';
+const API_BASE = 'https://cozejifen.haiei.cn/api';
 const TENANT_ID = 'default';
 
 // 接口响应类型
@@ -26,8 +26,14 @@ interface ShopStatus {
 }
 
 interface ProductsResponse {
-  list: ProductWithInventory[];
+  list: Product[];
   total: number;
+}
+
+interface InventoryResponse {
+  stockQuantity: number;
+  soldQuantity: number;
+  date: string;
 }
 
 // 分类映射
@@ -65,7 +71,7 @@ const Home: React.FC = () => {
    */
   const fetchShopStatus = async () => {
     try {
-      const res = await apiGet<ShopStatus>(`/shop/status`, {
+      const res = await apiGet<ShopStatus>('/shop/status', {
         tenantId: TENANT_ID,
       });
       if (res.data) {
@@ -88,8 +94,8 @@ const Home: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await apiGet<ProductsResponse>(`/products`, {
-        params: { status: 'active', tenantId: TENANT_ID },
+      const res = await apiGet<ProductsResponse>('/products', {
+        params: { status: 'active' },
         tenantId: TENANT_ID,
       });
 
@@ -99,20 +105,28 @@ const Home: React.FC = () => {
           res.data.list.map(async (product) => {
             try {
               const today = new Date().toISOString().split('T')[0];
-              const inventoryRes = await apiGet<DailyInventory>(
+              const inventoryRes = await apiGet<InventoryResponse>(
                 `/inventory/daily`,
                 {
                   params: {
                     productId: product.id,
                     date: today,
-                    tenantId: TENANT_ID,
                   },
                   tenantId: TENANT_ID,
                 }
               );
               return {
                 ...product,
-                dailyInventory: inventoryRes.data,
+                dailyInventory: inventoryRes.data ? {
+                  id: '',
+                  tenantId: product.tenantId,
+                  productId: product.id,
+                  date: today,
+                  stockQuantity: inventoryRes.data.stockQuantity,
+                  soldQuantity: inventoryRes.data.soldQuantity,
+                  createdAt: '',
+                  updatedAt: '',
+                } : undefined,
               };
             } catch {
               return product;
@@ -216,93 +230,92 @@ const Home: React.FC = () => {
   };
 
   /**
-   * 获取商品库存数量
+   * 获取库存数量
    */
-  const getStockQuantity = (product: ProductWithInventory): number | undefined => {
+  const getAvailableQuantity = (product: ProductWithInventory): number | undefined => {
     if (!product.dailyInventory) return undefined;
     return product.dailyInventory.stockQuantity - product.dailyInventory.soldQuantity;
   };
 
   /**
-   * 获取商品标签
+   * 渲染商品卡片
    */
-  const getProductTags = (product: ProductWithInventory): string[] => {
-    const tags = product.tags || [];
-    const stockQty = getStockQuantity(product);
+  const renderProductCard = (product: ProductWithInventory) => {
+    const available = getAvailableQuantity(product);
+    const isSoldOut = available !== undefined && available <= 0;
 
-    // 判断是否"刚出锅"：销量高且不是新品
-    if (
-      (product.salesCount || 0) > 50 &&
-      !tags.includes('新品') &&
-      new Date(product.createdAt) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    ) {
-      tags.push('刚出锅');
-    }
-
-    return tags;
+    return (
+      <view key={product.id} className="product-wrapper">
+        <ProductCard
+          product={product}
+          onClick={() => handleViewDetail(product)}
+          onAdd={() => !isSoldOut && handleAddToCart(product)}
+        />
+        {isSoldOut && (
+          <view className="sold-out-overlay">
+            <text>售罄</text>
+          </view>
+        )}
+      </view>
+    );
   };
 
   return (
     <view className="home-page">
-      {/* 顶部店铺状态 */}
+      {/* 顶部状态栏 */}
       {!isBusinessOpen.isOpen && (
-        <view className="business-closed-banner">
-          <text>店铺休息中 · {isBusinessOpen.message || '请稍后再来'}</text>
+        <view className="closed-banner">
+          <text>{isBusinessOpen.message || '店铺休息中'}</text>
         </view>
       )}
 
       {/* 分类标签 */}
       <view className="category-tabs">
-        {categories.map((cat) => (
+        {categories.map((category) => (
           <view
-            key={cat}
-            className={`category-tab ${activeCategory === cat ? 'category-tab--active' : ''}`}
-            onClick={() => setActiveCategory(cat)}
+            key={category}
+            className={`category-tab ${activeCategory === category ? 'active' : ''}`}
+            onClick={() => setActiveCategory(category)}
           >
-            <text>{cat}</text>
+            <text>{category}</text>
           </view>
         ))}
       </view>
 
       {/* 商品列表 */}
-      {isLoading ? (
-        <Loading text="加载中..." />
-      ) : error ? (
-        <view className="error-state">
-          <text>{error}</text>
-          <view className="retry-btn" onClick={fetchProducts}>
-            <text>重试</text>
+      <scroll-view
+        className="product-list"
+        scroll-y
+        enable-back-to-top
+        onRefresherRefresh={handleRefresh}
+        refresher-enabled
+        refresher-triggered={isLoading}
+      >
+        {isLoading && products.length === 0 ? (
+          <Loading text="加载中..." />
+        ) : error ? (
+          <Empty text={error} />
+        ) : filteredProducts.length === 0 ? (
+          <Empty text="暂无商品" />
+        ) : (
+          <view className="product-grid">
+            {filteredProducts.map(renderProductCard)}
           </view>
-        </view>
-      ) : filteredProducts.length === 0 ? (
-        <Empty text="暂无商品" />
-      ) : (
-        <scroll-view
-          className="product-list"
-          scroll-y
-          onScrollToLower={handleRefresh}
-        >
-          {filteredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              stock={getStockQuantity(product)}
-              tags={getProductTags(product)}
-              onClick={() => handleViewDetail(product)}
-              onAddCart={() => handleAddToCart(product)}
-            />
-          ))}
-        </scroll-view>
-      )}
+        )}
+      </scroll-view>
 
-      {/* 购物车数量 */}
+      {/* 购物车悬浮按钮 */}
       {cartCount > 0 && (
-        <view className="cart-float" onClick={() => Taro.switchTab({ url: '/pages/cart/index' })}>
-          <text className="cart-float__count">{cartCount > 99 ? '99+' : cartCount}</text>
+        <view
+          className="cart-float-btn"
+          onClick={() => Taro.switchTab({ url: '/pages/cart/index' })}
+        >
+          <text className="cart-icon">🛒</text>
+          <Badge value={cartCount} max={99} />
         </view>
       )}
 
-      {/* 规格选择器弹窗 */}
+      {/* 规格选择器 */}
       {currentProduct && (
         <SpecSelector
           product={currentProduct}

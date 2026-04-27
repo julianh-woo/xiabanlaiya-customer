@@ -1,130 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Taro from '@tarojs/taro';
-import { Order, OrderStatus, ORDER_STATUS_TEXT } from '@/shared/types/order';
+import { Order, OrderStatus } from '@/shared/types/order';
 import { Button, Price, Empty, Loading, Tag } from '@/components/ui';
+import { get as apiGet } from '@/network/request';
 import './index.scss';
 
-// Mock 订单数据
-const mockOrders: Order[] = [
-  {
-    id: 'o001',
-    tenantId: 't001',
-    customerId: 'c001',
-    orderNo: 'ORD202401150001',
-    status: 'pending',
-    items: [
-      {
-        id: 'oi001',
-        productId: 'p001',
-        productName: '招牌卤味拼盘',
-        image: { url: 'https://picsum.photos/200/200?random=20' },
-        quantity: 1,
-        unitPrice: 68,
-        totalPrice: 68,
-        pricingSnapshot: { type: 'fixed', price: 68, unit: '份' },
-      },
-      {
-        id: 'oi002',
-        productId: 'p002',
-        productName: '麻辣鸭脖',
-        image: { url: 'https://picsum.photos/200/200?random=21' },
-        quantity: 2,
-        unitPrice: 28,
-        totalPrice: 56,
-        pricingSnapshot: { type: 'fixed', price: 28, unit: '份' },
-      },
-    ],
-    totalAmount: 124,
-    finalAmount: 124,
-    deliveryMode: 'pickup',
-    remark: '多放辣',
-    pricingSnapshots: [],
-    createdAt: '2024-01-15T10:30:00Z',
-    updatedAt: '2024-01-15T10:30:00Z',
-  },
-  {
-    id: 'o002',
-    tenantId: 't001',
-    customerId: 'c001',
-    orderNo: 'ORD202401140002',
-    status: 'preparing',
-    items: [
-      {
-        id: 'oi003',
-        productId: 'p003',
-        productName: '秘制鸭翅',
-        image: { url: 'https://picsum.photos/200/200?random=22' },
-        quantity: 3,
-        unitPrice: 18,
-        totalPrice: 54,
-        pricingSnapshot: { type: 'fixed', price: 18, unit: '份' },
-      },
-    ],
-    totalAmount: 54,
-    finalAmount: 54,
-    deliveryMode: 'local',
-    deliveryFee: 5,
-    deliveryAddress: { name: '张三', phone: '138****8888', detail: 'XX小区1号楼101' },
-    pricingSnapshots: [],
-    createdAt: '2024-01-14T14:20:00Z',
-    updatedAt: '2024-01-14T14:35:00Z',
-  },
-  {
-    id: 'o003',
-    tenantId: 't001',
-    customerId: 'c001',
-    orderNo: 'ORD202401130003',
-    status: 'completed',
-    items: [
-      {
-        id: 'oi004',
-        productId: 'p004',
-        productName: '鲜卤牛肉',
-        image: { url: 'https://picsum.photos/200/200?random=23' },
-        quantity: 1,
-        unitPrice: 48,
-        totalPrice: 48,
-        pricingSnapshot: { type: 'weight', pricePerJin: 48, minWeight: 0.5, stepWeight: 0.5 },
-      },
-    ],
-    totalAmount: 53,
-    finalAmount: 53,
-    deliveryMode: 'pickup',
-    pricingSnapshots: [],
-    createdAt: '2024-01-13T18:00:00Z',
-    updatedAt: '2024-01-13T19:30:00Z',
-    completedAt: '2024-01-13T19:30:00Z',
-  },
-  {
-    id: 'o004',
-    tenantId: 't001',
-    customerId: 'c001',
-    orderNo: 'ORD202401120004',
-    status: 'cancelled',
-    items: [
-      {
-        id: 'oi005',
-        productId: 'p005',
-        productName: '卤味拼盘（自选）',
-        image: { url: 'https://picsum.photos/200/200?random=24' },
-        quantity: 1,
-        unitPrice: 22,
-        totalPrice: 22,
-        pricingSnapshot: { type: 'custom', options: [] },
-      },
-    ],
-    totalAmount: 22,
-    finalAmount: 22,
-    deliveryMode: 'pickup',
-    pricingSnapshots: [],
-    createdAt: '2024-01-12T20:00:00Z',
-    updatedAt: '2024-01-12T20:15:00Z',
-    cancelledAt: '2024-01-12T20:15:00Z',
-    cancelReason: '不需要了',
-  },
-];
+// API 基础配置
+const API_BASE = 'https://cozejifen.haiei.cn/api';
+const TENANT_ID = 'default';
 
 type TabType = 'all' | 'pending' | 'processing' | 'completed';
+
+interface OrderListResponse {
+  list: Order[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
 
 const tabs: { key: TabType; label: string }[] = [
   { key: 'all', label: '全部' },
@@ -137,23 +29,59 @@ const Orders: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [activeTab]);
 
+  /**
+   * 获取订单列表
+   */
   const fetchOrders = async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      // 模拟API延迟
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setOrders(mockOrders);
-    } catch (error) {
-      console.error('Failed to fetch orders:', error);
-      Taro.showToast({ title: '加载失败', icon: 'none' });
+      // 构建查询参数
+      const params: Record<string, string> = {
+        page: '1',
+        pageSize: '20',
+      };
+
+      // 根据tab筛选
+      if (activeTab === 'pending') {
+        params.status = 'pending';
+      } else if (activeTab === 'processing') {
+        params.status = 'confirmed,preparing,ready';
+      } else if (activeTab === 'completed') {
+        params.status = 'completed,cancelled';
+      }
+
+      const res = await apiGet<OrderListResponse>('/orders', {
+        params,
+        tenantId: TENANT_ID,
+      });
+
+      if (res.data?.list) {
+        setOrders(res.data.list);
+      } else {
+        setOrders([]);
+      }
+    } catch (err) {
+      console.error('获取订单列表失败:', err);
+      setError('加载失败');
+      Taro.showToast({ title: '加载失败，请下拉刷新', icon: 'none' });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  /**
+   * 下拉刷新
+   */
+  const handleRefresh = async () => {
+    await fetchOrders();
+    Taro.stopPullDownRefresh();
   };
 
   const getFilteredOrders = useCallback(() => {
@@ -166,7 +94,7 @@ const Orders: React.FC = () => {
 
   const handleOrderClick = (order: Order) => {
     Taro.navigateTo({
-      url: `/pages/order-detail/index?orderNo=${order.orderNo}`,
+      url: `/pages/order-detail/index?orderNo=${order.orderNo}&id=${order.id}`,
     });
   };
 

@@ -1,76 +1,74 @@
 import React, { useState, useEffect } from 'react';
 import Taro from '@tarojs/taro';
-import { Reservation, ReservationStatus, RESERVATION_STATUS_TEXT } from '@/shared/types/reservation';
+import { Reservation, ReservationStatus } from '@/shared/types/reservation';
 import { Button, Empty, Loading, Tag, Dialog } from '@/components/ui';
+import { get as apiGet, post as apiPost, del as apiDel } from '@/network/request';
 import './index.scss';
 
-// Mock 预约数据
-const mockReservations: Reservation[] = [
-  {
-    id: 'r001',
-    tenantId: 't001',
-    customerId: 'c001',
-    customerName: '张三',
-    customerPhone: '138****8888',
-    date: '2024-01-20',
-    timeSlot: '18:00-19:00',
-    partySize: 4,
-    remark: '需要儿童座椅',
-    status: 'confirmed',
-    confirmTime: '2024-01-15T10:00:00Z',
-    createdAt: '2024-01-15T09:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z',
-  },
-  {
-    id: 'r002',
-    tenantId: 't001',
-    customerId: 'c001',
-    customerName: '张三',
-    customerPhone: '138****8888',
-    date: '2024-01-25',
-    timeSlot: '12:00-13:00',
-    partySize: 2,
-    status: 'pending',
-    createdAt: '2024-01-18T14:00:00Z',
-    updatedAt: '2024-01-18T14:00:00Z',
-  },
-  {
-    id: 'r003',
-    tenantId: 't001',
-    customerId: 'c001',
-    customerName: '张三',
-    customerPhone: '138****8888',
-    date: '2024-01-10',
-    timeSlot: '19:00-20:00',
-    partySize: 5,
-    status: 'completed',
-    confirmTime: '2024-01-08T10:00:00Z',
-    completeTime: '2024-01-10T21:00:00Z',
-    createdAt: '2024-01-08T09:00:00Z',
-    updatedAt: '2024-01-10T21:00:00Z',
-  },
-];
+// API 基础配置
+const API_BASE = 'https://cozejifen.haiei.cn/api';
+const TENANT_ID = 'default';
+
+interface ReservationListResponse {
+  list: Reservation[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+interface CreateReservationRequest {
+  customerName: string;
+  customerPhone: string;
+  date: string;
+  timeSlot: string;
+  partySize?: number;
+  remark?: string;
+}
 
 const Reservations: React.FC = () => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showNewReservation, setShowNewReservation] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReservations();
   }, []);
 
+  /**
+   * 获取预约列表
+   */
   const fetchReservations = async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setReservations(mockReservations);
-    } catch (error) {
-      console.error('Failed to fetch reservations:', error);
-      Taro.showToast({ title: '加载失败', icon: 'none' });
+      const res = await apiGet<ReservationListResponse>('/reservations', {
+        params: {
+          page: '1',
+          pageSize: '20',
+        },
+        tenantId: TENANT_ID,
+      });
+
+      if (res.data?.list) {
+        setReservations(res.data.list);
+      } else {
+        setReservations([]);
+      }
+    } catch (err) {
+      console.error('获取预约列表失败:', err);
+      setError('加载失败');
+      Taro.showToast({ title: '加载失败，请下拉刷新', icon: 'none' });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  /**
+   * 下拉刷新
+   */
+  const handleRefresh = async () => {
+    await fetchReservations();
+    Taro.stopPullDownRefresh();
   };
 
   const getStatusTag = (status: ReservationStatus) => {
@@ -91,6 +89,14 @@ const Reservations: React.FC = () => {
     return `${date.getMonth() + 1}月${date.getDate()}日 ${weekDay}`;
   };
 
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  };
+
+  /**
+   * 取消预约
+   */
   const handleCancelReservation = async (id: string) => {
     const confirmed = await Dialog.confirm({
       title: '确认取消',
@@ -100,13 +106,24 @@ const Reservations: React.FC = () => {
     });
 
     if (confirmed) {
-      setReservations(prev =>
-        prev.map(r => r.id === id ? { ...r, status: 'cancelled' as ReservationStatus } : r)
-      );
-      Taro.showToast({ title: '已取消预约', icon: 'success' });
+      try {
+        await apiDel(`/reservations/${id}`, {
+          tenantId: TENANT_ID,
+        });
+        setReservations(prev =>
+          prev.map(r => r.id === id ? { ...r, status: 'cancelled' as ReservationStatus } : r)
+        );
+        Taro.showToast({ title: '已取消预约', icon: 'success' });
+      } catch (err) {
+        console.error('取消预约失败:', err);
+        Taro.showToast({ title: '取消失败，请重试', icon: 'none' });
+      }
     }
   };
 
+  /**
+   * 新建预约
+   */
   const handleNewReservation = () => {
     Taro.navigateTo({ url: '/pages/reservations/new' });
   };
@@ -123,19 +140,25 @@ const Reservations: React.FC = () => {
           <text className="info-icon">🕐</text>
           <text className="info-text">{reservation.timeSlot}</text>
         </view>
-        <view className="info-row">
-          <text className="info-icon">👥</text>
-          <text className="info-text">{reservation.partySize}人</text>
-        </view>
+        {reservation.partySize && (
+          <view className="info-row">
+            <text className="info-icon">👥</text>
+            <text className="info-text">{reservation.partySize}人</text>
+          </view>
+        )}
         {reservation.remark && (
           <view className="info-row">
             <text className="info-icon">📝</text>
             <text className="info-text">{reservation.remark}</text>
           </view>
         )}
+        <view className="info-row">
+          <text className="info-icon">📱</text>
+          <text className="info-text">{reservation.customerPhone}</text>
+        </view>
       </view>
 
-      {reservation.status === 'pending' && (
+      {['pending', 'confirmed'].includes(reservation.status) && (
         <view className="reservation-card__action">
           <Button
             type="danger"

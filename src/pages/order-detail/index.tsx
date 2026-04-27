@@ -1,130 +1,77 @@
 import React, { useState, useEffect } from 'react';
 import Taro from '@tarojs/taro';
-import { Order, OrderStatus, ORDER_STATUS_TEXT } from '@/shared/types/order';
+import { Order, OrderStatus } from '@/shared/types/order';
 import { Button, Price, Loading, Tag, Divider, Dialog } from '@/components/ui';
 import { useLedger } from '@/context/LedgerContext';
+import { get as apiGet, post as apiPost } from '@/network/request';
 import './index.scss';
 
-// Mock 订单数据
-const mockOrders: Record<string, Order> = {
-  'ORD202401150001': {
-    id: 'o001',
-    tenantId: 't001',
-    customerId: 'c001',
-    orderNo: 'ORD202401150001',
-    status: 'pending',
-    items: [
-      {
-        id: 'oi001',
-        productId: 'p001',
-        productName: '招牌卤味拼盘',
-        image: { url: 'https://picsum.photos/200/200?random=30' },
-        quantity: 1,
-        unitPrice: 68,
-        totalPrice: 68,
-        pricingSnapshot: { type: 'fixed', price: 68, unit: '份' },
-      },
-      {
-        id: 'oi002',
-        productId: 'p002',
-        productName: '麻辣鸭脖',
-        image: { url: 'https://picsum.photos/200/200?random=31' },
-        quantity: 2,
-        unitPrice: 28,
-        totalPrice: 56,
-        pricingSnapshot: { type: 'fixed', price: 28, unit: '份' },
-      },
-    ],
-    totalAmount: 124,
-    finalAmount: 124,
-    deliveryMode: 'pickup',
-    remark: '多放辣',
-    pricingSnapshots: [],
-    createdAt: '2024-01-15T10:30:00Z',
-    updatedAt: '2024-01-15T10:30:00Z',
-  },
-  'ORD202401140002': {
-    id: 'o002',
-    tenantId: 't001',
-    customerId: 'c001',
-    orderNo: 'ORD202401140002',
-    status: 'preparing',
-    items: [
-      {
-        id: 'oi003',
-        productId: 'p003',
-        productName: '秘制鸭翅',
-        image: { url: 'https://picsum.photos/200/200?random=32' },
-        quantity: 3,
-        unitPrice: 18,
-        totalPrice: 54,
-        pricingSnapshot: { type: 'fixed', price: 18, unit: '份' },
-      },
-    ],
-    totalAmount: 54,
-    finalAmount: 59,
-    deliveryMode: 'local',
-    deliveryFee: 5,
-    deliveryAddress: { name: '张三', phone: '138****8888', detail: 'XX小区1号楼101' },
-    pricingSnapshots: [],
-    createdAt: '2024-01-14T14:20:00Z',
-    updatedAt: '2024-01-14T14:35:00Z',
-    confirmedAt: '2024-01-14T14:35:00Z',
-  },
-  'ORD202401130003': {
-    id: 'o003',
-    tenantId: 't001',
-    customerId: 'c001',
-    orderNo: 'ORD202401130003',
-    status: 'completed',
-    items: [
-      {
-        id: 'oi004',
-        productId: 'p004',
-        productName: '鲜卤牛肉',
-        image: { url: 'https://picsum.photos/200/200?random=33' },
-        quantity: 1,
-        unitPrice: 48,
-        totalPrice: 48,
-        pricingSnapshot: { type: 'weight', pricePerJin: 48, minWeight: 0.5, stepWeight: 0.5 },
-      },
-    ],
-    totalAmount: 48,
-    finalAmount: 48,
-    deliveryMode: 'pickup',
-    pricingSnapshots: [],
-    createdAt: '2024-01-13T18:00:00Z',
-    updatedAt: '2024-01-13T19:30:00Z',
-    confirmedAt: '2024-01-13T18:15:00Z',
-    readyAt: '2024-01-13T19:00:00Z',
-    completedAt: '2024-01-13T19:30:00Z',
-  },
-};
+// API 基础配置
+const API_BASE = 'https://cozejifen.haiei.cn/api';
+const TENANT_ID = 'default';
+
+interface OrderDetailResponse {
+  order: Order;
+}
+
+interface PayRequest {
+  orderId: string;
+  paymentMethod: 'wechat' | 'balance';
+}
+
+interface PayResponse {
+  paySign: string;
+  timeStamp: string;
+  nonceStr: string;
+  package: string;
+  signType: string;
+}
 
 const OrderDetail: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { balance, pay } = useLedger();
+  const [error, setError] = useState<string | null>(null);
+  const { balance, refresh: refreshBalance, pay } = useLedger();
 
   useEffect(() => {
     fetchOrderDetail();
+    refreshBalance();
   }, []);
 
+  /**
+   * 获取订单详情
+   */
   const fetchOrderDetail = async () => {
     setIsLoading(true);
+    setError(null);
+
     try {
       const pages = Taro.getCurrentPages();
       const currentPage = pages[pages.length - 1];
-      const orderNo = (currentPage as any)?.options?.orderNo || 'ORD202401150001';
+      const orderId = (currentPage as any)?.options?.id;
+      const orderNo = (currentPage as any)?.options?.orderNo;
 
-      await new Promise(resolve => setTimeout(resolve, 300));
+      if (!orderId && !orderNo) {
+        setError('订单不存在');
+        setIsLoading(false);
+        return;
+      }
 
-      const foundOrder = mockOrders[orderNo] || mockOrders['ORD202401150001'];
-      setOrder(foundOrder);
-    } catch (error) {
-      console.error('Failed to fetch order detail:', error);
-      Taro.showToast({ title: '加载失败', icon: 'none' });
+      // 优先使用ID查询
+      const url = orderId ? `/orders/${orderId}` : `/orders/by-no/${orderNo}`;
+      const res = await apiGet<OrderDetailResponse>(url, {
+        tenantId: TENANT_ID,
+      });
+
+      if (res.data?.order) {
+        setOrder(res.data.order);
+      } else {
+        setError('订单不存在');
+      }
+    } catch (err) {
+      console.error('获取订单详情失败:', err);
+      setError('加载失败，请重试');
     } finally {
       setIsLoading(false);
     }
@@ -166,7 +113,12 @@ const OrderDetail: React.FC = () => {
     }));
   };
 
+  /**
+   * 取消订单
+   */
   const handleCancel = async () => {
+    if (!order) return;
+
     const confirmed = await Dialog.confirm({
       title: '确认取消',
       message: '确定要取消此订单吗？',
@@ -175,56 +127,116 @@ const OrderDetail: React.FC = () => {
     });
 
     if (confirmed) {
-      // 模拟取消操作
-      Taro.showToast({ title: '订单已取消', icon: 'success' });
-      setTimeout(() => {
-        Taro.navigateBack();
-      }, 1500);
+      setIsProcessing(true);
+      try {
+        await apiPost(`/orders/${order.id}/cancel`, {}, {
+          tenantId: TENANT_ID,
+        });
+        Taro.showToast({ title: '订单已取消', icon: 'success' });
+        setOrder(prev => prev ? { ...prev, status: 'cancelled' } : null);
+      } catch (err) {
+        console.error('取消订单失败:', err);
+        Taro.showToast({ title: '取消失败，请重试', icon: 'none' });
+      } finally {
+        setIsProcessing(false);
+      }
     }
   };
 
-  const handlePay = async () => {
+  /**
+   * 微信支付
+   */
+  const handleWechatPay = async () => {
     if (!order) return;
 
     setIsProcessing(true);
     try {
-      // 模拟支付
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // 调用后端获取支付参数
+      const res = await apiPost<PayResponse>(`/orders/${order.id}/pay`, {
+        paymentMethod: 'wechat',
+      }, {
+        tenantId: TENANT_ID,
+      });
 
-      const success = await pay(order.id, order.finalAmount);
+      if (res.data) {
+        // 调用微信支付
+        const payResult = await Taro.requestPayment({
+          timeStamp: res.data.timeStamp,
+          nonceStr: res.data.nonceStr,
+          package: res.data.package,
+          signType: res.data.signType,
+          paySign: res.data.paySign,
+        });
 
-      if (success) {
-        Taro.showToast({ title: '支付成功', icon: 'success' });
-        setOrder(prev => prev ? { ...prev, status: 'confirmed' } : null);
-      } else {
-        Taro.showToast({ title: '支付失败', icon: 'none' });
+        if (payResult.errMsg === 'requestPayment:ok') {
+          Taro.showToast({ title: '支付成功', icon: 'success' });
+          setOrder(prev => prev ? { ...prev, status: 'confirmed' } : null);
+        } else {
+          Taro.showToast({ title: '支付取消', icon: 'none' });
+        }
       }
-    } catch (error) {
-      Taro.showToast({ title: '支付失败', icon: 'none' });
+    } catch (err: any) {
+      console.error('支付失败:', err);
+      Taro.showToast({ title: err.message || '支付失败', icon: 'none' });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleContact = () => {
-    Taro.makePhoneCall({
-      phoneNumber: '138****8888',
-      fail: () => {
-        Taro.showToast({ title: '拨打失败', icon: 'none' });
-      },
-    });
+  /**
+   * 余额支付
+   */
+  const handleBalancePay = async () => {
+    if (!order) return;
+
+    if (balance < order.finalAmount) {
+      Taro.showToast({ title: '余额不足', icon: 'none' });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await apiPost(`/orders/${order.id}/pay`, {
+        paymentMethod: 'balance',
+      }, {
+        tenantId: TENANT_ID,
+      });
+
+      Taro.showToast({ title: '支付成功', icon: 'success' });
+      setOrder(prev => prev ? { ...prev, status: 'confirmed' } : null);
+      refreshBalance();
+    } catch (err) {
+      console.error('余额支付失败:', err);
+      Taro.showToast({ title: '支付失败，请重试', icon: 'none' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  /**
+   * 一键呼叫
+   */
+  const handleCall = () => {
+    Taro.showToast({ title: '功能开发中', icon: 'none' });
   };
 
   const goBack = () => {
     Taro.navigateBack();
   };
 
-  const formatDateTime = (dateStr: string) => {
+  const getDeliveryText = (mode: Order['deliveryMode']) => {
+    const map = { pickup: '到店自取', local: '本地配送', express: '快递配送' };
+    return map[mode];
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '-';
     const date = new Date(dateStr);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
 
-  if (isLoading || !order) {
+  // 加载状态
+  if (isLoading) {
     return (
       <view className="order-detail-page">
         <Loading text="加载中..." />
@@ -232,15 +244,29 @@ const OrderDetail: React.FC = () => {
     );
   }
 
+  // 错误状态
+  if (error || !order) {
+    return (
+      <view className="order-detail-page">
+        <view className="error-state">
+          <Loading text={error || '订单不存在'} />
+          <Button type="primary" onClick={goBack}>返回</Button>
+        </view>
+      </view>
+    );
+  }
+
   const statusInfo = getStatusInfo(order.status);
   const progressSteps = getProgressSteps(order.status);
+  const canCancel = ['pending', 'confirmed'].includes(order.status);
+  const canPay = order.status === 'pending';
 
   return (
     <view className="order-detail-page">
-      {/* 状态 Banner */}
-      <view className="status-banner" style={{ backgroundColor: statusInfo.color }}>
-        <text className="status-banner__label">{statusInfo.label}</text>
-        <text className="status-banner__desc">{statusInfo.desc}</text>
+      {/* 订单状态 */}
+      <view className="status-section" style={{ backgroundColor: statusInfo.color }}>
+        <text className="status-label">{statusInfo.label}</text>
+        <text className="status-desc">{statusInfo.desc}</text>
       </view>
 
       {/* 进度条 */}
@@ -248,14 +274,12 @@ const OrderDetail: React.FC = () => {
         <view className="progress-section">
           <view className="progress-steps">
             {progressSteps.map((step, index) => (
-              <view key={step.key} className="progress-step">
-                <view className={`step-dot ${step.isActive ? 'step-dot--active' : ''} ${step.isCurrent ? 'step-dot--current' : ''}`}>
+              <view key={step.key} className={`progress-step ${step.isActive ? 'active' : ''} ${step.isCurrent ? 'current' : ''}`}>
+                <view className="step-dot">
                   {step.isActive && <text>✓</text>}
                 </view>
-                {index < progressSteps.length - 1 && (
-                  <view className={`step-line ${step.isActive ? 'step-line--active' : ''}`} />
-                )}
                 <text className="step-label">{step.label}</text>
+                {index < progressSteps.length - 1 && <view className={`step-line ${step.isActive ? 'active' : ''}`} />}
               </view>
             ))}
           </view>
@@ -263,129 +287,132 @@ const OrderDetail: React.FC = () => {
       )}
 
       {/* 配送信息 */}
-      <view className="info-section">
-        <view className="info-header">
-          <text className="info-title">配送信息</text>
+      <view className="delivery-section">
+        <view className="delivery-header">
+          <text className="delivery-icon">🚚</text>
+          <text className="delivery-type">{getDeliveryText(order.deliveryMode)}</text>
         </view>
-        <view className="info-content">
-          {order.deliveryMode === 'pickup' ? (
-            <view className="info-row">
-              <text className="info-label">取餐方式</text>
-              <text className="info-value">到店自取</text>
-            </view>
-          ) : (
-            <>
-              <view className="info-row">
-                <text className="info-label">配送方式</text>
-                <text className="info-value">
-                  {order.deliveryMode === 'local' ? '本地配送' : '快递'}
-                </text>
-              </view>
-              {order.deliveryAddress && (
-                <view className="info-row">
-                  <text className="info-label">收货地址</text>
-                  <text className="info-value">
-                    {order.deliveryAddress.name} {order.deliveryAddress.phone}
-                    {order.deliveryAddress.detail}
-                  </text>
-                </view>
-              )}
-            </>
-          )}
-          <view className="info-row">
-            <text className="info-label">下单时间</text>
-            <text className="info-value">{formatDateTime(order.createdAt)}</text>
+        {order.deliveryAddress && (
+          <view className="delivery-info">
+            <text className="receiver">{order.deliveryAddress.name} {order.deliveryAddress.phone}</text>
+            <text className="address">
+              {order.deliveryAddress.province}{order.deliveryAddress.city}{order.deliveryAddress.district}{order.deliveryAddress.detail}
+            </text>
           </view>
-          {order.remark && (
-            <view className="info-row">
-              <text className="info-label">备注</text>
-              <text className="info-value info-value--remark">{order.remark}</text>
-            </view>
-          )}
-        </view>
+        )}
+        {order.pickupTime && (
+          <view className="pickup-time">
+            <text>预约取餐时间：{formatDate(order.pickupTime)}</text>
+          </view>
+        )}
       </view>
 
-      {/* 商品清单 */}
-      <view className="info-section">
-        <view className="info-header">
-          <text className="info-title">商品清单</text>
-        </view>
-        <view className="info-content">
-          {order.items.map(item => (
-            <view key={item.id} className="goods-item">
-              <image
-                className="goods-item__image"
-                src={item.image?.url || '/assets/images/placeholder.png'}
-                mode="aspectFill"
-              />
-              <view className="goods-item__info">
-                <text className="goods-item__name">{item.productName}</text>
-                <text className="goods-item__specs">x{item.quantity}</text>
+      {/* 商品列表 */}
+      <view className="items-section">
+        <view className="section-title">商品明细</view>
+        {order.items.map(item => (
+          <view key={item.id} className="order-item">
+            <image
+              className="item-image"
+              src={item.image?.url || '/assets/images/placeholder.png'}
+              mode="aspectFill"
+            />
+            <view className="item-info">
+              <text className="item-name">{item.productName}</text>
+              {item.specs && Object.keys(item.specs).length > 0 && (
+                <text className="item-specs">
+                  {Object.entries(item.specs).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                </text>
+              )}
+              <view className="item-price-row">
+                <Price value={item.unitPrice} size="small" />
+                <text className="item-quantity">x{item.quantity}</text>
               </view>
-              <Price value={item.totalPrice} size="medium" />
             </view>
-          ))}
-        </view>
+            <Price value={item.totalPrice} size="medium" />
+          </view>
+        ))}
       </view>
 
       {/* 价格明细 */}
-      <view className="info-section">
-        <view className="info-header">
-          <text className="info-title">价格明细</text>
+      <view className="price-section">
+        <view className="price-row">
+          <text className="price-label">商品金额</text>
+          <Price value={order.totalAmount} />
         </view>
-        <view className="info-content">
+        {order.deliveryFee !== undefined && order.deliveryFee > 0 && (
           <view className="price-row">
-            <text className="price-label">商品金额</text>
-            <Price value={order.totalAmount} size="medium" />
+            <text className="price-label">配送费</text>
+            <Price value={order.deliveryFee} />
           </view>
-          {order.deliveryFee && order.deliveryFee > 0 && (
-            <view className="price-row">
-              <text className="price-label">配送费</text>
-              <Price value={order.deliveryFee} size="medium" />
-            </view>
-          )}
-          {order.discountAmount && order.discountAmount > 0 && (
-            <view className="price-row">
-              <text className="price-label">优惠</text>
-              <Price value={-order.discountAmount} size="medium" />
-            </view>
-          )}
-          <Divider />
-          <view className="price-row price-row--total">
-            <text className="price-label">实付金额</text>
-            <Price value={order.finalAmount} size="large" />
+        )}
+        {order.discountAmount !== undefined && order.discountAmount > 0 && (
+          <view className="price-row">
+            <text className="price-label">优惠</text>
+            <Price value={-order.discountAmount} color="#FF4D4F" />
           </view>
+        )}
+        <Divider />
+        <view className="price-row total">
+          <text className="price-label">实付金额</text>
+          <Price value={order.finalAmount} size="large" />
         </view>
       </view>
 
-      {/* 底部操作栏 */}
-      <view className="action-bar">
-        {order.status === 'pending' && (
-          <>
-            <Button type="default" size="large" onClick={handleCancel}>
-              取消订单
+      {/* 订单信息 */}
+      <view className="info-section">
+        <view className="info-row">
+          <text className="info-label">订单编号</text>
+          <text className="info-value">{order.orderNo}</text>
+        </view>
+        <view className="info-row">
+          <text className="info-label">下单时间</text>
+          <text className="info-value">{formatDate(order.createdAt)}</text>
+        </view>
+        {order.remark && (
+          <view className="info-row">
+            <text className="info-label">备注</text>
+            <text className="info-value">{order.remark}</text>
+          </view>
+        )}
+      </view>
+
+      {/* 操作按钮 */}
+      <view className="action-section">
+        {canPay && (
+          <view className="pay-buttons">
+            <Button
+              type="default"
+              size="large"
+              loading={isProcessing}
+              onClick={handleBalancePay}
+              disabled={balance < order.finalAmount}
+            >
+              余额支付（{balance.toFixed(2)}）
             </Button>
             <Button
               type="primary"
               size="large"
               loading={isProcessing}
-              disabled={balance < order.finalAmount}
-              onClick={handlePay}
+              onClick={handleWechatPay}
             >
-              立即支付
+              微信支付
             </Button>
-          </>
+          </view>
         )}
-        {['confirmed', 'preparing', 'ready'].includes(order.status) && (
-          <Button type="primary" size="large" onClick={handleContact}>
-            联系商家
+        {canCancel && (
+          <Button
+            type="default"
+            size="large"
+            onClick={handleCancel}
+            disabled={isProcessing}
+          >
+            取消订单
           </Button>
         )}
-        {order.status === 'completed' && (
-          <Button type="primary" size="large" onClick={() => Taro.switchTab({ url: '/pages/home/index' })}>
-            再次购买
-          </Button>
-        )}
+        <Button type="default" size="large" onClick={handleCall}>
+          联系商家
+        </Button>
       </view>
     </view>
   );

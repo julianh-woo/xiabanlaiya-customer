@@ -2,10 +2,14 @@ import React, { useEffect } from 'react';
 import Taro from '@tarojs/taro';
 import { CartProvider } from './context/CartContext';
 import { LedgerProvider } from './context/LedgerContext';
+import { initAuthCache, isAuthenticated } from './utils/auth';
 import './styles/global.scss';
 
 class App extends React.Component {
   componentDidMount() {
+    // 初始化 Auth 缓存
+    initAuthCache();
+    
     // 检查登录状态
     this.checkLoginStatus();
     
@@ -14,7 +18,6 @@ class App extends React.Component {
   }
 
   checkLoginStatus() {
-    const token = Taro.getStorageSync('token');
     const customerId = Taro.getStorageSync('customer_id');
     
     // 如果没有登录信息，设置模拟数据用于预览

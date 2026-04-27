@@ -13,17 +13,23 @@ import { StockBadge } from '@/components/stock-badge';
 import { SpecSelector } from '@/components/spec-selector';
 import { useCart } from '@/context/CartContext';
 import { SelectedOption } from '@/context/CartContext';
-import { get as apiGet } from '@/shared/network/request';
+import { get as apiGet } from '@/network/request';
 import { calculateWeightPrice } from '@/shared/lib/price-calculator';
 import './index.scss';
 
 // API 基础配置
-const API_BASE = 'http://175.27.158.118:5000/api';
+const API_BASE = 'https://cozejifen.haiei.cn/api';
 const TENANT_ID = 'default';
 
 interface ProductDetailResponse {
   product: Product;
   dailyInventory?: DailyInventory;
+}
+
+interface InventoryResponse {
+  stockQuantity: number;
+  soldQuantity: number;
+  date: string;
 }
 
 const ProductDetail: React.FC = () => {
@@ -65,9 +71,42 @@ const ProductDetail: React.FC = () => {
         tenantId: TENANT_ID,
       });
 
-      if (res.data) {
+      if (res.data?.product) {
         setProduct(res.data.product);
-        setInventory(res.data.dailyInventory || null);
+        
+        // 获取库存信息
+        if (res.data.dailyInventory) {
+          setInventory(res.data.dailyInventory);
+        } else {
+          // 如果API没有返回库存，单独获取
+          try {
+            const today = new Date().toISOString().split('T')[0];
+            const inventoryRes = await apiGet<InventoryResponse>(
+              `/inventory/daily`,
+              {
+                params: {
+                  productId: productId,
+                  date: today,
+                },
+                tenantId: TENANT_ID,
+              }
+            );
+            if (inventoryRes.data) {
+              setInventory({
+                id: '',
+                tenantId: res.data.product.tenantId,
+                productId: productId,
+                date: today,
+                stockQuantity: inventoryRes.data.stockQuantity,
+                soldQuantity: inventoryRes.data.soldQuantity,
+                createdAt: '',
+                updatedAt: '',
+              });
+            }
+          } catch {
+            // 库存获取失败不影响商品展示
+          }
+        }
       } else {
         setError('商品不存在');
       }

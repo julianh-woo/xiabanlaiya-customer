@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Taro from '@tarojs/taro';
 import { Button, Input, Loading } from '@/components/ui';
-import { setAuthToken } from '@/network/request';
+import { setToken, saveLoginToken, getToken } from '@/utils/auth';
 import './index.scss';
 
-const API_BASE = 'http://175.27.158.118:5000/api';
+const API_BASE = 'https://cozejifen.haiei.cn/api';
 
 const Login: React.FC = () => {
   const [loginType, setLoginType] = useState<'wechat' | 'phone'>('phone');
@@ -16,7 +16,7 @@ const Login: React.FC = () => {
 
   // 检查是否已登录
   useEffect(() => {
-    const token = Taro.getStorageSync('token');
+    const token = getToken();
     if (token) {
       // 已有token，跳转到首页
       Taro.switchTab({ url: '/pages/home/index' });
@@ -32,13 +32,11 @@ const Login: React.FC = () => {
   }, [countdown]);
 
   // 微信授权登录
-  const handleWechatLogin = async () => {
+  const handleWechatLogin = async (e: any) => {
     try {
-      const res = await Taro.getUserProfile({
-        desc: '用于完善会员资料',
-      });
-
-      if (res.userInfo) {
+      const res = e.detail?.userInfo;
+      
+      if (res) {
         setIsLoading(true);
         // 调用后端API进行微信登录
         try {
@@ -46,18 +44,23 @@ const Login: React.FC = () => {
             url: `${API_BASE}/auth/wechat`,
             method: 'POST',
             data: {
-              nickName: res.userInfo.nickName,
-              avatarUrl: res.userInfo.avatarUrl,
-              gender: res.userInfo.gender,
-              city: res.userInfo.city,
-              province: res.userInfo.province,
-              country: res.userInfo.country,
+              nickName: res.nickName,
+              avatarUrl: res.avatarUrl,
+              gender: res.gender,
+              city: res.city,
+              province: res.province,
+              country: res.country,
             },
           });
 
           if (result.data && result.data.token) {
-            setAuthToken(result.data.token);
-            Taro.setStorageSync('user_info', result.data.user || res.userInfo);
+            // 使用新的 auth 模块保存 token
+            saveLoginToken({
+              token: result.data.token,
+              refreshToken: result.data.refreshToken,
+              expireAt: result.data.expireAt,
+            });
+            Taro.setStorageSync('user_info', result.data.user || res);
             Taro.showToast({ title: '登录成功', icon: 'success' });
             setTimeout(() => {
               Taro.switchTab({ url: '/pages/home/index' });
@@ -67,8 +70,8 @@ const Login: React.FC = () => {
           console.log('API调用失败，使用本地登录流程');
           // 模拟登录成功
           const mockToken = `token_${Date.now()}`;
-          setAuthToken(mockToken);
-          Taro.setStorageSync('user_info', res.userInfo);
+          setToken(mockToken);
+          Taro.setStorageSync('user_info', res);
           Taro.showToast({ title: '登录成功', icon: 'success' });
           setTimeout(() => {
             Taro.switchTab({ url: '/pages/home/index' });
@@ -138,7 +141,12 @@ const Login: React.FC = () => {
       });
 
       if (result.data && result.data.token) {
-        setAuthToken(result.data.token);
+        // 使用新的 auth 模块保存 token
+        saveLoginToken({
+          token: result.data.token,
+          refreshToken: result.data.refreshToken,
+          expireAt: result.data.expireAt,
+        });
         Taro.setStorageSync('user_info', result.data.user || { phone });
         Taro.showToast({ title: '登录成功', icon: 'success' });
         setTimeout(() => {
@@ -149,7 +157,7 @@ const Login: React.FC = () => {
       console.log('API调用失败，使用模拟登录');
       // 模拟登录成功
       const mockToken = `token_${Date.now()}`;
-      setAuthToken(mockToken);
+      setToken(mockToken);
       Taro.setStorageSync('user_info', { phone });
       Taro.showToast({ title: '登录成功', icon: 'success' });
       setTimeout(() => {

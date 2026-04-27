@@ -1,60 +1,68 @@
+/**
+ * Network Request 模块
+ * 基于 Axios 封装的请求工具，支持 Token 自动刷新
+ */
 import Taro from '@tarojs/taro';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { ApiResponse } from '@/shared/types';
+import { 
+  getTokenWithRefresh, 
+  getAuthHeader, 
+  clearToken,
+  initAuthCache,
+  getToken
+} from '@/utils/auth';
 
 const BASE_URL = 'https://cozejifen.haiei.cn/api';
 
 interface RequestOptions extends AxiosRequestConfig {
   skipAuth?: boolean;
   skipTenant?: boolean;
+  autoRefreshToken?: boolean;
 }
 
 let globalTenantId: string | null = null;
-let authToken: string | null = null;
+let isInitialized = false;
 
-export function setGlobalTenantId(tenantId: string): void {
-  globalTenantId = tenantId;
-}
-
-export function getGlobalTenantId(): string | null {
-  return globalTenantId;
-}
-
-export function setAuthToken(token: string): void {
-  authToken = token;
-  try {
-    Taro.setStorageSync('token', token);
-  } catch (e) {
-    console.error('Failed to save token:', e);
+// 初始化 auth 缓存
+function ensureAuthInitialized(): void {
+  if (!isInitialized) {
+    initAuthCache();
+    isInitialized = true;
   }
 }
 
-export function getAuthToken(): string | null {
-  if (authToken) return authToken;
+export function setGlobalTenantId(tenantId: string): void {
+  globalTenantId = tenantId;
   try {
-    const token = Taro.getStorageSync('token');
-    if (token) {
-      authToken = token;
-      return token;
+    Taro.setStorageSync('tenant_id', tenantId);
+  } catch (e) {
+    console.error('Failed to save tenantId:', e);
+  }
+}
+
+export function getGlobalTenantId(): string | null {
+  if (globalTenantId) return globalTenantId;
+  try {
+    const tenantId = Taro.getStorageSync('tenant_id');
+    if (tenantId) {
+      globalTenantId = tenantId;
+      return tenantId;
     }
   } catch (e) {
-    console.error('Failed to get token:', e);
+    console.error('Failed to get tenantId:', e);
   }
   return null;
 }
 
-export function clearAuthToken(): void {
-  authToken = null;
-  try {
-    Taro.removeStorageSync('token');
-  } catch (e) {
-    console.error('Failed to remove token:', e);
-  }
-}
-
 function handleUnauthorized(): void {
-  clearAuthToken();
-  Taro.redirectTo({ url: '/pages/login/index' });
+  clearToken();
+  const currentPages = Taro.getCurrentPages();
+  const currentPath = currentPages.length > 0 ? currentPages[currentPages.length - 1].route : '';
+  
+  if (!currentPath.includes('login')) {
+    Taro.redirectTo({ url: '/pages/login/index' });
+  }
 }
 
 // 创建 axios 实例
@@ -68,13 +76,28 @@ const instance: AxiosInstance = axios.create({
 
 // 请求拦截器
 instance.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = getAuthToken();
-    if (token) {
-      config.headers.set('Authorization', `Bearer ${token}`);
+  async (config: InternalAxiosRequestConfig) => {
+    ensureAuthInitialized();
+    
+    const options = config as RequestOptions;
+    
+    // 跳过认证的请求
+    if (!options.skipAuth) {
+      // 自动刷新 token（如果即将过期）
+      if (options.autoRefreshToken !== false) {
+        const token = await getTokenWithRefresh();
+        if (token) {
+          config.headers.set('Authorization', `Bearer ${token}`);
+        }
+      } else {
+        const token = getToken();
+        if (token) {
+          config.headers.set('Authorization', `Bearer ${token}`);
+        }
+      }
     }
 
-    const tenantId = (config as RequestOptions).tenantId || globalTenantId;
+    const tenantId = options.tenantId || globalTenantId;
     if (tenantId) {
       config.headers.set('X-Tenant-ID', tenantId);
     }
@@ -171,7 +194,7 @@ export function uploadFile(
   formData?: Record<string, string>
 ): Promise<ApiResponse<string>> {
   return new Promise((resolve, reject) => {
-    const token = getAuthToken();
+    const token = getToken();
     const header: Record<string, string> = {};
     if (token) {
       header['Authorization'] = `Bearer ${token}`;
@@ -213,9 +236,12 @@ export default {
   patch,
   del,
   uploadFile,
-  setAuthToken,
-  getAuthToken,
-  clearAuthToken,
   setGlobalTenantId,
   getGlobalTenantId,
+  setAuthToken: (token: string) => {
+    const { setToken } = require('@/utils/auth');
+    setToken(token);
+  },
+  getAuthToken: getToken,
+  clearAuthToken: clearToken,
 };
