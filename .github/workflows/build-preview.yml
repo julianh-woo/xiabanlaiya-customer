@@ -38,7 +38,12 @@ jobs:
       - name: Install dependencies
         run: |
           cd apps/customer
-          ls node_modules/.bin/taro 2>/dev/null && echo "taro已存在，跳过安装" || npm ci
+          if [ -f node_modules/.bin/taro ]; then
+            echo "taro已存在，跳过npm install"
+          else
+            echo "开始安装依赖..."
+            npm ci
+          fi
         timeout-minutes: 90
       
       - name: Build Taro project
