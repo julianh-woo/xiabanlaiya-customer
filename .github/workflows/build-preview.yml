@@ -2,9 +2,9 @@ name: Build and Preview WeChat Mini Program
 
 on:
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
-    branches: [main, master]
+    branches: [master]
   workflow_dispatch:
 
 jobs:
@@ -19,32 +19,44 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/customer/package-lock.json
+      
+      - name: Install Yarn
+        run: npm install -g yarn
+      
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: node-cache
+        with:
+          path: |
+            apps/customer/node_modules
+          key: ${{ runner.os }}-node20-${{ hashFiles('apps/customer/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node20-
       
       - name: Install dependencies
+        if: steps.node-cache.outputs.cache-hit != 'true'
         run: |
           cd apps/customer
-          npm install --registry https://registry.npmmirror.com
-        timeout-minutes: 30
+          yarn install --network-timeout 600000
+        timeout-minutes: 45
       
       - name: Build Taro project
         run: |
           cd apps/customer
-          npm run build:weapp
-        timeout-minutes: 15
+          yarn build:weapp
+        timeout-minutes: 20
       
       - name: Preview with miniprogram-ci
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          retry_wait_seconds: 30
-          command: |
-            cd apps/customer
-            npm run preview
-          retry_count: 3
+        run: |
+          cd apps/customer
+          yarn preview
         env:
           WECHAT_APPID: ${{ secrets.WECHAT_APPID }}
           WECHAT_PRIVATE_KEY: ${{ secrets.WECHAT_PRIVATE_KEY }}
         continue-on-error: true
+        timeout-minutes: 15
       
       - name: Upload preview artifacts
         if: always()
