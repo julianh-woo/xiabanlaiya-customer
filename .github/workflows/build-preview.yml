@@ -34,7 +34,6 @@ jobs:
             ${{ runner.os }}-node20-
       
       - name: Install dependencies
-        if: steps.node-cache.outputs.cache-hit != 'true'
         run: |
           cd apps/customer
           yarn install --network-timeout 600000
