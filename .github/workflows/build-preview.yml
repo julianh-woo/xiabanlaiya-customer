@@ -20,35 +20,31 @@ jobs:
         with:
           node-version: '20'
       
-      - name: Install Yarn
-        run: npm install -g yarn
-      
       - name: Cache node_modules
         uses: actions/cache@v4
-        id: node-cache
         with:
-          path: |
-            apps/customer/node_modules
-          key: ${{ runner.os }}-node20-${{ hashFiles('apps/customer/package-lock.json') }}
+          path: apps/customer/node_modules
+          key: ${{ runner.os }}-node20-v1-${{ hashFiles('apps/customer/package-lock.json') }}
           restore-keys: |
+            ${{ runner.os }}-node20-v1-
             ${{ runner.os }}-node20-
       
       - name: Install dependencies
         run: |
           cd apps/customer
-          yarn install --network-timeout 600000
-        timeout-minutes: 45
+          npm ci
+        timeout-minutes: 40
       
       - name: Build Taro project
         run: |
           cd apps/customer
-          yarn build:weapp
+          npm run build:weapp
         timeout-minutes: 20
       
       - name: Preview with miniprogram-ci
         run: |
           cd apps/customer
-          yarn preview
+          node preview.js
         env:
           WECHAT_APPID: ${{ secrets.WECHAT_APPID }}
           WECHAT_PRIVATE_KEY: ${{ secrets.WECHAT_PRIVATE_KEY }}
