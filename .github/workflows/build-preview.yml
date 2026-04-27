@@ -29,11 +29,12 @@ jobs:
             ${{ runner.os }}-node20-v1-
             ${{ runner.os }}-node20-
       
-      - name: Install dependencies
-        run: |
-          cd apps/customer
-          npm ci
-        timeout-minutes: 40
+      # - name: Install dependencies
+      #   run: |
+      #     cd apps/customer
+      #     npm ci --prefer-offline
+      #   timeout-minutes: 40
+      # 注：如果缓存命中，node_modules已存在，可跳过安装直接构建
       
       - name: Build Taro project
         run: |
