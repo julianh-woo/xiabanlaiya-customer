@@ -3,13 +3,12 @@ name: Build and Preview WeChat Mini Program
 on:
   push:
     branches: [master]
-  pull_request:
-    branches: [master]
   workflow_dispatch:
 
 jobs:
   build-and-preview:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     
     steps:
       - name: Checkout code
@@ -20,36 +19,40 @@ jobs:
         with:
           node-version: '20'
       
-      - name: Cache node_modules
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      - name: Cache pnpm
         uses: actions/cache@v4
         with:
-          path: apps/customer/node_modules
-          key: ${{ runner.os }}-node20-v1-${{ hashFiles('apps/customer/package-lock.json') }}
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('apps/customer/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-node20-v1-
-            ${{ runner.os }}-node20-
+            ${{ runner.os }}-pnpm-
       
-      - name: Check node_modules
+      - name: Setup pnpm
         run: |
-          echo "node_modules状态:"
-          ls apps/customer/node_modules/.bin/taro 2>/dev/null && echo "✅ taro已安装" || echo "❌ taro未安装"
-          ls apps/customer/node_modules/.bin/npm 2>/dev/null && echo "✅ npm已安装" || echo "❌ npm未安装"
+          pnpm config set store-dir ~/.pnpm-store
+          pnpm config set registry https://registry.npmmirror.com
       
       - name: Install dependencies
         run: |
           cd apps/customer
-          if [ -f node_modules/.bin/taro ]; then
-            echo "taro已存在，跳过npm install"
-          else
-            echo "开始安装依赖..."
-            npm ci
-          fi
-        timeout-minutes: 90
+          for i in 1 2 3 4 5; do
+            echo "安装尝试 $i/5..."
+            if pnpm install --prefer-offline; then
+              echo "安装成功"
+              break
+            fi
+            echo "安装失败，30秒后重试..."
+            sleep 30
+          done
+        timeout-minutes: 60
       
       - name: Build Taro project
         run: |
           cd apps/customer
-          npm run build:weapp
+          pnpm build:weapp
         timeout-minutes: 20
       
       - name: Preview with miniprogram-ci
